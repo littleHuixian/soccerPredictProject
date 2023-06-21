@@ -1,7 +1,6 @@
 #include "scoredetaildialog.h"
 #include "ui_scoredetaildialog.h"
 
-
 extern QSqlDatabase database;
 extern QSqlQueryModel *tableModel;
 extern QStringList pointTableLists;
@@ -36,7 +35,7 @@ void scoreDetailDialog::getSelectData(const QModelIndex &index)
 
     homeTeam = tableModel->data(homeIndex, 0).toString();
     awayTeam = tableModel->data(awayIndex, 0).toString();
-    qDebug()<<"主队："<<homeTeam<<"客队："<<awayTeam;
+    //qDebug()<<"主队："<<homeTeam<<"客队："<<awayTeam;
     ui->lineEditHome->setText(homeTeam);
     ui->lineEditAway->setText(awayTeam);
 

@@ -132,7 +132,7 @@ void MainWindow::creatDatabase()
 
         premierTeam<<tr("曼城")<<tr("阿森纳")<<tr("曼联")<<tr("纽卡斯尔联")<<tr("利物浦")<<tr("布莱顿")<<tr("维拉")<<tr("热刺")<<tr("布伦特福德")
                     <<tr("富勒姆")<<tr("水晶宫")<<tr("切尔西")<<tr("狼队")<<tr("西汉姆联")<<tr("伯恩茅斯")<<tr("诺丁汉森林")<<tr("埃弗顿")
-                      <<tr("伯恩利")<<tr("谢菲尔德联")<<tr("卢顿镇");
+                      <<tr("伯恩利")<<tr("谢菲尔德联")<<tr("卢顿");
 
         laligaTeam<< tr("巴萨")<<tr("皇马")<<tr("马竞")<<tr("皇家社会")<<tr("比利亚雷尔")<<tr("皇家贝蒂斯")<<tr("奥萨苏纳")<<tr("毕尔巴鄂")<<tr("马略卡")
                      <<tr("赫罗纳")<<tr("巴列卡诺")<<tr("塞维利亚")<<tr("塞尔塔")<<tr("加的斯")<<tr("赫塔费")<<tr("巴伦西亚")<<tr("阿尔梅里亚")
@@ -147,8 +147,8 @@ void MainWindow::creatDatabase()
                     <<tr("斯图加特")<<tr("海登海姆")<<tr("达姆斯塔特");
 
         ligueTeam<<tr("巴黎")<<tr("朗斯")<<tr("马赛")<<tr("雷恩")<<tr("里尔")<<tr("摩纳哥")<<tr("里昂")<<tr("克莱蒙")<<tr("尼斯")
-                <<tr("洛里昂")<<tr("兰斯")<<tr("蒙彼利埃")<<tr("图卢兹")<<tr("布雷斯特")<<tr("斯特拉斯")<<tr("南特")<<tr("勒阿弗尔")
-                  <<tr("梅斯")<<tr("谢菲尔德联")<<tr("卢顿镇");
+                <<tr("洛里昂")<<tr("兰斯")<<tr("蒙彼利埃")<<tr("图卢兹")<<tr("布雷斯特")<<tr("斯特拉斯")<<tr("南特")<<tr("欧赛尔")
+                  <<tr("阿雅克肖")<<tr("特鲁瓦")<<tr("昂热");
 
         //建表 积分表
         pointTableLists<<"allinTable"<<"alllossTable"<<"homeinTable"<<"homelossTable"<<"awayinTable"<<"awaylossTable";
@@ -456,7 +456,7 @@ void MainWindow::initTable()
 */
     //--------------------------QTableWidget形式结束----------------------------------
 }
-
+// 初始化对阵表
 void MainWindow::initTableview()
 {
     ui->groupBox->setFixedHeight(400);
@@ -482,12 +482,13 @@ void MainWindow::initTableview()
     ui->againstTable->setModel( tableModel );
     ui->againstTable->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
     ui->againstTable->horizontalHeader()->setDefaultAlignment( Qt::AlignCenter );
+    ui->againstTable->resizeColumnToContents(1);
     ui->againstTable->setSelectionBehavior( QAbstractItemView::SelectRows );
     ui->againstTable->horizontalHeader()->setStyleSheet( "QHeaderView::section {background-color: rgb(85, 170, 255)}" );
 
     ui->againstTable->verticalHeader()->setVisible(false);
 }
-
+//加载联赛积分表
 void MainWindow::loadLeagueTable()
 {
     QSqlQueryModel *qryModel = new QSqlQueryModel();
@@ -523,6 +524,7 @@ void MainWindow::modelToTable(QSqlQueryModel *queryModel)
     ui->tableView->verticalHeader()->setVisible(false);
 
 //    ui->tableView->setColumnWidth(2, 300);
+    ui->tableView->resizeColumnToContents(2);
 
     ui->tableView->setSelectionBehavior( QAbstractItemView::SelectRows );
     //表格内容不可编辑
