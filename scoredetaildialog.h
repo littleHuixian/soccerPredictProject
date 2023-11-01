@@ -7,6 +7,7 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QMessageBox>
+#include <QDateTime>
 
 namespace Ui {
 class scoreDetailDialog;
@@ -20,20 +21,26 @@ public:
     explicit scoreDetailDialog(QWidget *parent = nullptr);
     ~scoreDetailDialog();
 
-
-//signals:
     void getSelectData(const QModelIndex &index);
+signals:
+    void windowClosed();
 
 protected:
     void initTable();
-
     void loadDatabase(QTableWidget *tWidget, QString a);
+    void updateHomeGoal(QString cIndex, int cGoal, QString teamA, QString teamB);
+    void updateAwayGoal(QString cIndex, int cGoal, QString teamA, QString teamB);
+    QString updateLastStatus(QString team, QString resultType);
+    void closeEvent(QCloseEvent *event);
+
+private slots:
+    void on_btnUpdate_clicked();
 
 private:
     Ui::scoreDetailDialog *ui;
 
-    QSqlQueryModel *getSqlModel;
-    QString homeTeam, awayTeam;
+    //QSqlQueryModel *getSqlModel;
+    QString currentState;
 };
 
 #endif // SCOREDETAILDIALOG_H

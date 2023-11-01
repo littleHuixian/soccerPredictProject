@@ -36,15 +36,15 @@ public:
     void creatDatabase();
     void initMain();
     void initTable();
-    void initTableview();
+    void initAgainstTableview();
     void modelToTable( QSqlQueryModel *qryModel );
     void loadLeagueTable();
 
     void insertTable(QString leagueTable, QStringList teamList);
     void creatPointTable(QString a, QStringList teams);
-    void insertTotalTable( QStringList lTeam );
 
     void receiverAddInfo(QStringList data);
+    void updateTable();
 
 //signals:
 //    void sendAddGames(int selectIndex, QString team1, QString team2);
@@ -65,8 +65,8 @@ private:
     bool insertFlag;
 
 //    QSqlDatabase database;
-    QStringList leagueAgainstList;
-    QStringList teamData;
+    //QStringList leagueAgainstList;
+
 //    QStringList pointTableLists;
 
     detailDialog *detailWin;

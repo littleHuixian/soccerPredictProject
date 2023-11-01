@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1005</width>
-    <height>796</height>
+    <width>1108</width>
+    <height>949</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -100,7 +100,7 @@
       <property name="font">
        <font>
         <family>微软雅黑</family>
-        <pointsize>11</pointsize>
+        <pointsize>9</pointsize>
        </font>
       </property>
       <property name="text">
@@ -132,7 +132,7 @@
       <property name="font">
        <font>
         <family>微软雅黑</family>
-        <pointsize>11</pointsize>
+        <pointsize>9</pointsize>
        </font>
       </property>
       <property name="text">
@@ -151,7 +151,7 @@
       <property name="font">
        <font>
         <family>微软雅黑</family>
-        <pointsize>11</pointsize>
+        <pointsize>9</pointsize>
        </font>
       </property>
       <property name="text">
@@ -167,7 +167,7 @@
       <property name="minimumSize">
        <size>
         <width>400</width>
-        <height>0</height>
+        <height>360</height>
        </size>
       </property>
       <property name="font">
@@ -224,8 +224,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1005</width>
-     <height>23</height>
+     <width>1108</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>

@@ -5,8 +5,10 @@
 QSqlDatabase database;
 QSqlQueryModel *tableModel;
 QStringList pointTableLists;
+QStringList teamData;
 QString totalPointTables;
 int currentLeague, currentRound;
+QStringList leagueAgainstList;
 QStringList premierTeam, laligaTeam, serieaTeam, bundesligaTeam, ligueTeam;
 
 
@@ -31,9 +33,8 @@ MainWindow::MainWindow(QWidget *parent)  : QMainWindow(parent)  , ui(new Ui::Mai
     creatDatabase();
 
     initMain();
-//    initTable();
     //加载球队对阵表
-    initTableview();
+    initAgainstTableview();
     // 加载球队积分表
     loadLeagueTable();
 
@@ -48,9 +49,9 @@ MainWindow::MainWindow(QWidget *parent)  : QMainWindow(parent)  , ui(new Ui::Mai
     detailDialog->setWindowTitle( tr("对阵详情") );
     detailDialog->setWindowIcon( QIcon(":/icons/icon/detailIcon.png") );
 
-
     connect(ui->againstTable, &QTableView::doubleClicked, detailDialog, &scoreDetailDialog::getSelectData);
     connect(ui->againstTable, &QTableView::doubleClicked, this, &MainWindow::showDetailDialog);
+    connect(detailDialog, &scoreDetailDialog::windowClosed, this, &MainWindow::updateTable);
 }
 
 MainWindow::~MainWindow()
@@ -61,11 +62,11 @@ MainWindow::~MainWindow()
 void MainWindow::loadConfig()
 {
     configFilePath = qApp->applicationDirPath()+"/localconfig.ini";
-    if(!QFile::exists(configFilePath)){
+    if( !QFile::exists(configFilePath) ){
         QSettings configIniWrite(configFilePath, QSettings::IniFormat);
 
         configIniWrite.beginGroup("CONFIGURE");
-        //0对应A4纸张，1对应A5纸张
+
         configIniWrite.setValue("INSERTFLAG", false);
         configIniWrite.endGroup();
 
@@ -103,11 +104,10 @@ void MainWindow::creatDatabase()
         }
 
         teamData<<"premierData"<<"laligaData"<<"serieaData"<<"bundesligaData"<<"ligueData";
-        // 建表-积分表 英超-西甲-意甲-德甲-法甲
+        // 建表-积分表   英超-西甲-意甲-德甲-法甲
         for (int i = 0; i < teamData.length(); i++) {
             query.exec( QString("CREATE TABLE %1 ("
                        "round INTEGER, "
-                       "rank INTEGER, "
                        "team TEXT, "
                        "wins INTEGER, "
                        "draws INTEGER, "
@@ -127,7 +127,7 @@ void MainWindow::creatDatabase()
                        "aGoals INTEGER, "
                        "aAgainsts INTEGER, "
                        "aPoints INTEGER, "
-                       "last TEXT)").arg( teamData.at(i) ));
+                       "lastStatus TEXT)").arg( teamData.at(i) ));
         }
 
         premierTeam<<tr("曼城")<<tr("阿森纳")<<tr("曼联")<<tr("纽卡斯尔联")<<tr("利物浦")<<tr("布莱顿")<<tr("维拉")<<tr("热刺")<<tr("布伦特福德")
@@ -136,7 +136,7 @@ void MainWindow::creatDatabase()
 
         laligaTeam<< tr("巴萨")<<tr("皇马")<<tr("马竞")<<tr("皇家社会")<<tr("比利亚雷尔")<<tr("皇家贝蒂斯")<<tr("奥萨苏纳")<<tr("毕尔巴鄂")<<tr("马略卡")
                      <<tr("赫罗纳")<<tr("巴列卡诺")<<tr("塞维利亚")<<tr("塞尔塔")<<tr("加的斯")<<tr("赫塔费")<<tr("巴伦西亚")<<tr("阿尔梅里亚")
-                       <<tr("格拉纳达")<<tr("拉斯帕尔")<<tr("莱万特");
+                       <<tr("格拉纳达")<<tr("拉斯帕尔")<<tr("阿拉维斯");
 
         serieaTeam<<tr("那不勒斯")<<tr("拉齐奥")<<tr("国际米兰")<<tr("AC米兰")<<tr("亚特兰大")<<tr("罗马")<<tr("尤文图斯")<<tr("佛罗伦萨")<<tr("博洛尼亚")
                  <<tr("都灵")<<tr("蒙扎")<<tr("乌迪内斯")<<tr("萨索洛")<<tr("恩波利")<<tr("萨勒尼塔")<<tr("莱切")<<tr("斯佩齐亚")<<tr("维罗纳")
@@ -147,11 +147,11 @@ void MainWindow::creatDatabase()
                     <<tr("斯图加特")<<tr("海登海姆")<<tr("达姆斯塔特");
 
         ligueTeam<<tr("巴黎")<<tr("朗斯")<<tr("马赛")<<tr("雷恩")<<tr("里尔")<<tr("摩纳哥")<<tr("里昂")<<tr("克莱蒙")<<tr("尼斯")
-                <<tr("洛里昂")<<tr("兰斯")<<tr("蒙彼利埃")<<tr("图卢兹")<<tr("布雷斯特")<<tr("斯特拉斯")<<tr("南特")<<tr("欧赛尔")
-                  <<tr("阿雅克肖")<<tr("特鲁瓦")<<tr("昂热");
+                <<tr("洛里昂")<<tr("兰斯")<<tr("蒙彼利埃")<<tr("图卢兹")<<tr("布雷斯特")<<tr("斯特拉斯")<<tr("南特")<<tr("勒阿弗尔")
+                  <<tr("梅斯");
 
         //建表 积分表
-        pointTableLists<<"allinTable"<<"alllossTable"<<"homeinTable"<<"homelossTable"<<"awayinTable"<<"awaylossTable";
+        pointTableLists<<"allGoalTable"<<"alllossTable"<<"homeGoalTable"<<"homelossTable"<<"awayGoalTable"<<"awaylossTable";
         //QSqlQuery query;
         for (int i = 0; i < pointTableLists.length(); i++ ) {
             query.exec( QString("CREATE TABLE IF NOT EXISTS %1 ("
@@ -170,30 +170,6 @@ void MainWindow::creatDatabase()
                                 "ten INTEGER)").arg( pointTableLists.at(i) ));
         }
 
-        //建统计表
-        totalPointTables = "allPointTable";
-        query.exec( QString("CREATE TABLE IF NOT EXISTS %1 ("
-                            "round INTEGER, "
-                            "team TEXT, "
-                            "allWin INTEGER, "
-                            "allDraw INTEGER, "
-                            "allLoss INTEGER, "
-                            "allGoal INTEGER, "
-                            "allLosses INTEGER, "
-                            "allPoint INTEGER, "
-                            "homeWin INTEGER, "
-                            "homeDraw INTEGER, "
-                            "homeLoss INTEGER, "
-                            "homeGoal INTEGER, "
-                            "homeLosses INTEGER,"
-                            "homePoint INTEGER,"
-                            "awayWin INTEGER, "
-                            "awayDraw INTEGER, "
-                            "awayLoss INTEGER, "
-                            "awayGoal INTEGER, "
-                            "awayLosses INTEGER,"
-                            "awayPoint INTEGER)").arg( totalPointTables ));
-
         if (!insertFlag) {
             insertTable("premierData", premierTeam);
             insertTable("laligaData", laligaTeam);
@@ -209,17 +185,11 @@ void MainWindow::creatDatabase()
                 creatPointTable( pointTableLists.at(k), ligueTeam );
 
             }
-            insertTotalTable( premierTeam );
-            insertTotalTable( laligaTeam );
-            insertTotalTable( serieaTeam );
-            insertTotalTable( bundesligaTeam );
-            insertTotalTable( ligueTeam );
 
             //insertFlag = true;
             QSettings configIniWrite(configFilePath, QSettings::IniFormat);
 
             configIniWrite.beginGroup("CONFIGURE");
-            //0对应A4纸张，1对应A5纸张
             configIniWrite.setValue("INSERTFLAG", true);
             configIniWrite.endGroup();
 
@@ -237,139 +207,93 @@ void MainWindow::insertTable( QString leagueTable, QStringList teamList )
 {
     QSqlQuery query;
 
-    for (int j = 0; j < ( teamList.length() - 1 ) * 2; j++) {
-        for (int i = 0; i < teamList.length(); i++) {
-            QString execString = QString( "INSERT INTO %1 (round, rank, team, wins, draws, losses, goals, againsts, points,"
-                                          " hWins, hDraws, hLosses, hGoals, hAgainsts, hPoints, aWins, aDraws, aLosses, aGoals, aAgainsts, aPoints, last) "
-                                          "VALUES (:round, :rank, :team, :wins, :draws, :losses, :goals, :againsts, :points,"
-                                          " :hWins, :hDraws, :hLosses, :hGoals, :hAgainsts, :hPoints, :aWins, :aDraws, :aLosses, :aGoals, :aAgainsts, :aPoints, :last)" )
-                    .arg( leagueTable );
+    //for (int j = 0; j < ( teamList.length() - 1 ) * 2; j++) {
+    for (int i = 0; i < teamList.length(); i++) {
+        QString execString = QString( "INSERT INTO %1 (round, team, wins, draws, losses, goals, againsts, points,"
+                                      " hWins, hDraws, hLosses, hGoals, hAgainsts, hPoints, aWins, aDraws, aLosses, aGoals, aAgainsts, aPoints, lastStatus) "
+                                      "VALUES (:round, :team, :wins, :draws, :losses, :goals, :againsts, :points,"
+                                      ":hWins, :hDraws, :hLosses, :hGoals, :hAgainsts, :hPoints, :aWins, :aDraws, :aLosses, :aGoals, :aAgainsts, :aPoints, :lastStatus)" )
+                .arg( leagueTable );
 
-            // 准备插入语句
-            query.prepare( execString );
+        // 准备插入语句
+        query.prepare( execString );
 
-            // 绑定插入数据的值
-            query.bindValue(":round", j + 1);
-            query.bindValue(":rank", i + 1);
-            query.bindValue(":team", teamList.at(i) );
-            query.bindValue(":wins", 0);
-            query.bindValue(":draws", 0);
-            query.bindValue(":losses", 0);
-            query.bindValue(":goals", 0);
-            query.bindValue(":againsts", 0);
-            query.bindValue(":points", 0);
-            query.bindValue(":hWins", 0);
-            query.bindValue(":hDraws", 0);
-            query.bindValue(":hLosses", 0);
-            query.bindValue(":hGoals", 0);
-            query.bindValue(":hAgainsts", 0);
-            query.bindValue(":hPoints", 0);
-            query.bindValue(":aWins", 0);
-            query.bindValue(":aDraws", 0);
-            query.bindValue(":aLosses", 0);
-            query.bindValue(":aGoals", 0);
-            query.bindValue(":aAgainsts", 0);
-            query.bindValue(":aPoints", 0);
-            query.bindValue(":last", "-----");
+        // 绑定插入数据的值
+        query.bindValue(":round", 1);
+        query.bindValue(":team", teamList.at(i) );
+        query.bindValue(":wins", 0);
+        query.bindValue(":draws", 0);
+        query.bindValue(":losses", 0);
+        query.bindValue(":goals", 0);
+        query.bindValue(":againsts", 0);
+        query.bindValue(":points", 0);
+        query.bindValue(":hWins", 0);
+        query.bindValue(":hDraws", 0);
+        query.bindValue(":hLosses", 0);
+        query.bindValue(":hGoals", 0);
+        query.bindValue(":hAgainsts", 0);
+        query.bindValue(":hPoints", 0);
+        query.bindValue(":aWins", 0);
+        query.bindValue(":aDraws", 0);
+        query.bindValue(":aLosses", 0);
+        query.bindValue(":aGoals", 0);
+        query.bindValue(":aAgainsts", 0);
+        query.bindValue(":aPoints", 0);
+        query.bindValue(":lastStatus", "-----");
 
-            // 执行插入操作
-            if (!query.exec()) {
-                // 插入失败处理
-                infoLabel->setText( "insert data failure!" );
-                qDebug()<<"insert data failure!";
-                return;
-            }
-
+        // 执行插入操作
+        if (!query.exec()) {
+            // 插入失败处理
+            infoLabel->setText( "insert data failure!" );
+            qDebug()<<"insert data failure!";
+            return;
         }
     }
+    //}
     qDebug()<<QString("insert %1 success!").arg(leagueTable);
+    for (int j = 0; j < ( teamList.length() - 1 ) * 2; j++) {
+
+    }
 }
 
+//插入对阵详情表
 void MainWindow::creatPointTable(QString a, QStringList teams)
 {
     QSqlQuery query;
 
-    for (int m = 0; m < (teams.length() - 1 ) * 2; m++ ) {
-        for (int n = 0; n < teams.length(); n++) {
-            //插入数据
-            QString execString = QString( "INSERT INTO %1 (round, team, zero, one, two, three, four, five, six, seven, eight, nine, ten) "
-                                          "VALUES (:round, :team, :zero, :one, :two, :three, :four, :five, :six, :seven, :eight, :nine, :ten)" ).arg( a );
+    //for (int m = 0; m < (teams.length() - 1 ) * 2; m++ ) {
+    for (int n = 0; n < teams.length(); n++) {
+        //插入数据
+        QString execString = QString( "INSERT INTO %1 (round, team, zero, one, two, three, four, five, six, seven, eight, nine, ten) "
+                                      "VALUES (:round, :team, :zero, :one, :two, :three, :four, :five, :six, :seven, :eight, :nine, :ten)" ).arg( a );
 
-            // 准备插入语句
-            query.prepare( execString );
+        // 准备插入语句
+        query.prepare( execString );
 
-            // 绑定插入数据的值
-            query.bindValue(":round",  m+1);
-            query.bindValue(":team", teams.at(n) );
-            query.bindValue(":zero", 0);
-            query.bindValue(":one", 0);
-            query.bindValue(":two", 0);
-            query.bindValue(":three", 0);
-            query.bindValue(":four", 0);
-            query.bindValue(":five", 0);
-            query.bindValue(":six", 0);
-            query.bindValue(":seven", 0);
-            query.bindValue(":eight", 0);
-            query.bindValue(":nine", 0);
-            query.bindValue(":ten", 0);
+        // 绑定插入数据的值
+        query.bindValue(":round",  1);
+        query.bindValue(":team", teams.at(n) );
+        query.bindValue(":zero", 0);
+        query.bindValue(":one", 0);
+        query.bindValue(":two", 0);
+        query.bindValue(":three", 0);
+        query.bindValue(":four", 0);
+        query.bindValue(":five", 0);
+        query.bindValue(":six", 0);
+        query.bindValue(":seven", 0);
+        query.bindValue(":eight", 0);
+        query.bindValue(":nine", 0);
+        query.bindValue(":ten", 0);
 
-            // 执行插入操作
-            if ( !query.exec() ) {
-                // 插入失败处理
-                infoLabel->setText( "insert data failure!" );
-                qDebug()<<"insert points data failure!";
-                return;
-            }
+        // 执行插入操作
+        if ( !query.exec() ) {
+            // 插入失败处理
+            infoLabel->setText( "insert data failure!" );
+            qDebug()<<"insert points data failure!";
+            return;
         }
     }
-}
-
-void MainWindow::insertTotalTable( QStringList lTeam )
-{
-    QSqlQuery query;
-
-    for (int m = 0; m < (lTeam.length() - 1 ) * 2; m++ ) {
-        for (int n = 0; n < lTeam.length(); n++) {
-            //插入数据
-            QString execString = QString( "INSERT INTO allPointTable (round, team, allWin, allDraw, allLoss, allGoal, allLosses, allPoint,"
-                                          " homeWin, homeDraw, homeLoss, homeGoal, homeLosses, homePoint, awayWin, awayDraw, awayLoss, awayGoal, awayLosses, awayPoint) "
-                                          "VALUES (:round, :team, :allWin, :allDraw, :allLoss, :allGoal, :allLosses, :allPoint, :homeWin, :homeDraw, :homeLoss,"
-                                          " :homeGoal, :homeLosses, :homePoint, :awayWin, :awayDraw, :awayLoss, :awayGoal, :awayLosses, :awayPoint)" );
-
-            // 准备插入语句
-            query.prepare( execString );
-
-            // 绑定插入数据的值
-            query.bindValue(":round",  m+1);
-            query.bindValue(":team", lTeam.at(n) );
-            query.bindValue(":allWin", 0);
-            query.bindValue(":allDraw", 0);
-            query.bindValue(":allLoss", 0);
-            query.bindValue(":allGoal", 0);
-            query.bindValue(":allLosses", 0);
-            query.bindValue(":allPoint", 0);
-            query.bindValue(":homeWin", 0);
-            query.bindValue(":homeDraw", 0);
-            query.bindValue(":homeLoss", 0);
-            query.bindValue(":homeGoal", 0);
-            query.bindValue(":homeLosses", 0);
-            query.bindValue(":homePoint", 0);
-            query.bindValue(":awayWin", 0);
-            query.bindValue(":awayDraw", 0);
-            query.bindValue(":awayLoss", 0);
-            query.bindValue(":awayGoal", 0);
-            query.bindValue(":awayLosses", 0);
-            query.bindValue(":awayPoint", 0);
-
-            // 执行插入操作
-            if ( !query.exec() ) {
-                // 插入失败处理
-                infoLabel->setText( "insert toatal point table failure!" );
-                qDebug()<<"insert toatal point table failure!";
-                return;
-            }
-        }
-    }
+    //}
 }
 
 void MainWindow::initMain()
@@ -456,11 +380,18 @@ void MainWindow::initTable()
 */
     //--------------------------QTableWidget形式结束----------------------------------
 }
-// 初始化对阵表
-void MainWindow::initTableview()
+
+void MainWindow::updateTable()
 {
-    ui->groupBox->setFixedHeight(400);
-    ui->againstTable->setFixedHeight(360);
+    initAgainstTableview();
+    loadLeagueTable();
+}
+
+// 初始化对阵表
+void MainWindow::initAgainstTableview()
+{
+    ui->groupBox->setFixedHeight(450);
+    ui->againstTable->setFixedHeight(400);
 
 //    QSqlQueryModel *tableModel = new QSqlQueryModel();
     tableModel->setQuery( QString("SELECT round, gameTime,"
@@ -480,34 +411,38 @@ void MainWindow::initTableview()
     }
 
     ui->againstTable->setModel( tableModel );
+//    ui->againstTable->resizeColumnToContents(1);
     ui->againstTable->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
     ui->againstTable->horizontalHeader()->setDefaultAlignment( Qt::AlignCenter );
-    ui->againstTable->resizeColumnToContents(1);
     ui->againstTable->setSelectionBehavior( QAbstractItemView::SelectRows );
     ui->againstTable->horizontalHeader()->setStyleSheet( "QHeaderView::section {background-color: rgb(85, 170, 255)}" );
 
     ui->againstTable->verticalHeader()->setVisible(false);
+    ui->againstTable->verticalScrollBar();
+    //ui->againstTable->verticalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 }
 //加载联赛积分表
 void MainWindow::loadLeagueTable()
 {
     QSqlQueryModel *qryModel = new QSqlQueryModel();
-    qryModel->setQuery( QString("SELECT * FROM %1 WHERE round=='%2'").arg( teamData.at(ui->cbGames->currentIndex()) ).arg( ui->cbRounds->currentIndex()+1 ) );
+    //qryModel->setQuery( QString("SELECT * FROM %1 WHERE round=='%2'").arg( teamData.at(ui->cbGames->currentIndex()) ).arg( ui->cbRounds->currentIndex()+1 ) );
+    qryModel->setQuery( QString("SELECT * FROM %1").arg( teamData.at(ui->cbGames->currentIndex()) ) );
     if ( qryModel->lastError().isValid() ) {
         QMessageBox::information(this, tr("提 示"), tr("对阵信息不完整，新增失败！"), QMessageBox::Ok);
         return;
     }
 
     modelToTable( qryModel  );
-
 }
 
 void MainWindow::modelToTable(QSqlQueryModel *queryModel)
 {
+    //qDebug()<<"sort the table";
+    //queryModel->sort(7, Qt::DescendingOrder);
     ui->tableView->setModel( queryModel );
 
     QStringList headList;
-    headList<<tr("轮次")<<tr("排 名")<<tr("球 队")<<tr("胜")<<tr("平")<<tr("负")<<tr("进球数")<<tr("失球数")<<tr("积分")
+    headList<<tr("场次")<<tr("球 队")<<tr("胜")<<tr("平")<<tr("负")<<tr("进球数")<<tr("失球数")<<tr("积分")
            <<tr("主胜")<<tr("主平")<<tr("主负")<<tr("主进球")<<tr("主失球")<<tr("主积分")
           <<tr("客胜")<<tr("客平")<<tr("客负")<<tr("客进球")<<tr("客失球")<<tr("客积分")<<tr("近5场");
 
@@ -515,7 +450,6 @@ void MainWindow::modelToTable(QSqlQueryModel *queryModel)
         queryModel->setHeaderData( i, Qt::Horizontal, headList.at(i) );
     }
     //排序
-//    qryModel->sort()
 
 //    ui->tableView->horizontalHeader()->setSectionResizeMode( QHeaderView::ResizeToContents );
     ui->tableView->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
@@ -560,8 +494,9 @@ void MainWindow::receiverAddInfo(QStringList data)
 
         }
 
-        QString execStr = QString("INSERT INTO %1 (round, gameTime, hTeam, aTeam) "
-                                  "VALUES (:round, :gameTime, :hTeam, :aTeam)").arg(leagueAgainstList.at( ui->cbGames->currentIndex() ));
+        QString execStr = QString("INSERT INTO %1 (round, gameTime, hTeam, aTeam, predictAll, predictHalfAll, predictStatus) "
+                                  "VALUES (:round, :gameTime, :hTeam, :aTeam, :predictAll, :predictHalfAll, :predictStatus)")
+                .arg(leagueAgainstList.at( ui->cbGames->currentIndex() ));
         query.prepare( execStr );
 
         // 绑定插入数据的值
@@ -569,16 +504,13 @@ void MainWindow::receiverAddInfo(QStringList data)
         query.bindValue(":gameTime", data.at(0));
         query.bindValue(":hTeam", data.at(1));
         query.bindValue(":aTeam", data.at(2));
+        query.bindValue(":predictAll", tr("未预测"));
+        query.bindValue(":predictHalfAll", tr("未预测"));
+        query.bindValue(":predictStatus", tr("未预测"));
 
-        bool success = query.exec();
-        // 执行插入操作
-        if (!success) {
-            // 插入失败处理
-            infoLabel->setText( "insert data failure!" );
-            qDebug()<<"insert data failure!";
-            return;
-        }
-        initTableview();
+        query.exec();
+
+        initAgainstTableview();
 
     } else {
         QMessageBox::information(this, tr("提 示"), tr("对阵信息不完整，新增失败！"), QMessageBox::Ok);
@@ -596,7 +528,6 @@ void MainWindow::on_btnAdd_clicked()
 
 void MainWindow::showDetailDialog()
 {
-
     detailDialog->exec();
 
 }
@@ -607,30 +538,29 @@ void MainWindow::on_cbGames_currentIndexChanged(int index)
     currentLeague = index;
     QSqlQueryModel *qryModel = new QSqlQueryModel();
     //更新排名数据库
-    qryModel->setQuery( QString("SELECT * FROM %1 WHERE round=='%2'").arg( teamData.at(index) ).arg( ui->cbRounds->currentIndex()+1 ) );
+    //qryModel->setQuery( QString("SELECT * FROM %1 WHERE round=='%2'").arg( teamData.at(index) ).arg( ui->cbRounds->currentIndex()+1 ) );
+    qryModel->setQuery( QString("SELECT * FROM %1").arg( teamData.at(index) ) );
     if ( qryModel->lastError().isValid() ) {
         QMessageBox::information(this, tr("提 示"), tr("对阵信息不完整，新增失败！"), QMessageBox::Ok);
         return;
     }
 
     modelToTable( qryModel );
-    initTableview();
+    initAgainstTableview();
 }
 
 
 void MainWindow::on_cbRounds_currentIndexChanged(int index)
 {
     currentRound = index;
-    QSqlQueryModel *qryModel = new QSqlQueryModel();
-    //更新排名数据库
-    qryModel->setQuery( QString("SELECT * FROM %1 WHERE round=='%2'").arg( teamData.at( ui->cbGames->currentIndex() ) ).arg( index +1 ) );
-    if ( qryModel->lastError().isValid() ) {
-        QMessageBox::information(this, tr("提 示"), tr("对阵信息不完整，新增失败！"), QMessageBox::Ok);
-        return;
-    }
-
-    modelToTable( qryModel );
-    initTableview();
-
+//    QSqlQueryModel *qryModel = new QSqlQueryModel();
+//    //更新排名数据库
+//    qryModel->setQuery( QString("SELECT * FROM %1").arg( teamData.at( ui->cbGames->currentIndex() ) ).arg( index +1 ) );
+//    if ( qryModel->lastError().isValid() ) {
+//        QMessageBox::information(this, tr("提 示"), tr("对阵信息不完整，新增失败！"), QMessageBox::Ok);
+//        return;
+//    }
+//    modelToTable( qryModel );
+    initAgainstTableview();
 }
 

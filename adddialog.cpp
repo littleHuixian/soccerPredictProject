@@ -29,7 +29,7 @@ AddDialog::~AddDialog()
 
 void AddDialog::getSelectIndex(int a, int b)
 {
-    qDebug()<<"getSelectIndex a, b"<<a<<b;
+    //qDebug()<<"getSelectIndex a, b"<<a<<b;
 
     if( a == 0 ){
         ui->cbHome->clear();
